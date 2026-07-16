@@ -1,0 +1,179 @@
+// ProspectScanner — schéma Prisma
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum StatutScan {
+  en_attente
+  en_cours
+  termine
+  erreur
+}
+
+enum Plateforme {
+  facebook
+  instagram
+  tiktok
+  linkedin
+  youtube
+  x
+  pagesjaunes
+  booking
+  tripadvisor
+  airbnb
+  site_web
+}
+
+enum Priorite {
+  tres_elevee
+  elevee
+  moyenne
+  faible
+}
+
+enum StatutSuivi {
+  nouveau
+  contacte
+  en_negociation
+  converti
+  perdu
+}
+
+enum TypeDeconnexion {
+  manuelle
+  inactivite
+}
+
+enum TypeEvenementJournal {
+  connexion
+  activite_suspecte
+}
+
+enum TypeCodeVerification {
+  reinitialisation_mdp
+  changement_mdp
+  connexion
+}
+
+model Scan {
+  id                            String     @id @default(cuid())
+  statut                        StatutScan @default(en_attente)
+  secteur                       String
+  ville                         String
+  rayon_km                      Int
+  date_creation                 DateTime   @default(now())
+  date_fin                      DateTime?
+  nombre_etablissements_trouves Int        @default(0)
+  nombre_prospects_qualifies    Int        @default(0)
+  erreur_message                String?
+
+  etablissements Etablissement[]
+
+  @@map("scans")
+}
+
+model Etablissement {
+  id                 String   @id @default(cuid())
+  scan_id            String
+  google_place_id    String?  @unique
+  nom                String
+  secteur            String
+  ville              String
+  adresse            String
+  telephone          String?
+  siret              String?
+  statut_siret       String?
+  note_google        Float?
+  nombre_avis_google Int?
+  date_creation      DateTime @default(now())
+
+  scan      Scan              @relation(fields: [scan_id], references: [id], onDelete: Cascade)
+  presences PresenceEnLigne[]
+  prospect  Prospect?
+
+  @@map("etablissements")
+}
+
+model PresenceEnLigne {
+  id                String     @id @default(cuid())
+  etablissement_id  String
+  plateforme        Plateforme
+  trouve            Boolean    @default(false)
+  url               String?
+  nombre_abonnes    Int?
+  derniere_activite DateTime?
+  details           Json?
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@unique([etablissement_id, plateforme])
+  @@map("presences_en_ligne")
+}
+
+model Prospect {
+  id                  String      @id @default(cuid())
+  etablissement_id    String      @unique
+  score               Int
+  priorite            Priorite
+  a_site_web          Boolean     @default(false)
+  analyse_commerciale String?
+  date_calcul         DateTime    @default(now())
+  statut_suivi        StatutSuivi @default(nouveau)
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@map("prospects")
+}
+
+model Utilisateur {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  mot_de_passe_hash String
+  est_admin         Boolean  @default(false)
+  actif             Boolean  @default(true)
+  date_creation     DateTime @default(now())
+
+  journalConnexions JournalConnexion[]
+  codesVerification CodeVerification[]
+
+  @@map("utilisateurs")
+}
+
+model CodeVerification {
+  id             String               @id @default(cuid())
+  utilisateur_id String
+  code_hash      String
+  type           TypeCodeVerification
+  expire_a       DateTime
+  utilise        Boolean              @default(false)
+  tentatives     Int                  @default(0)
+  date_creation  DateTime             @default(now())
+
+  utilisateur Utilisateur @relation(fields: [utilisateur_id], references: [id], onDelete: Cascade)
+
+  @@index([utilisateur_id, type])
+  @@map("codes_verification")
+}
+
+model JournalConnexion {
+  id               String                @id @default(cuid())
+  utilisateur_id   String?
+  email            String
+  adresse_ip       String
+  type_evenement   TypeEvenementJournal  @default(connexion)
+  connecte_a       DateTime              @default(now())
+  deconnecte_a     DateTime?
+  type_deconnexion TypeDeconnexion?
+
+  utilisateur Utilisateur? @relation(fields: [utilisateur_id], references: [id], onDelete: SetNull)
+
+  @@index([connecte_a])
+  @@map("journal_connexions")
+}

@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0e0f;
+  --foreground: #d9f5ec;
+
+  --color-panel: #0f1618;
+  --color-panel-hover: #131c1f;
+
+  --color-neon-green: #00ff9d;
+  --color-neon-cyan: #00d4ff;
+  --color-neon-red: #ff3b3b;
+  --color-neon-orange: #ff9500;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--color-panel);
+  --color-panel-hover: var(--color-panel-hover);
+  --color-neon-green: var(--color-neon-green);
+  --color-neon-cyan: var(--color-neon-cyan);
+  --color-neon-red: var(--color-neon-red);
+  --color-neon-orange: var(--color-neon-orange);
+  --font-sans: var(--font-ui-sans);
+  --font-mono: var(--font-ui-mono);
+}
+
+* {
+  scrollbar-color: var(--color-neon-green) var(--color-panel);
+  scrollbar-width: thin;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ui-sans), Arial, Helvetica, sans-serif;
+}
+
+/* --- Cyber design system utilities --- */
+
+.glow-green {
+  box-shadow: 0 0 8px 0 rgba(0, 255, 157, 0.35), 0 0 1px 0 rgba(0, 255, 157, 0.6);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 8px 0 rgba(0, 212, 255, 0.35), 0 0 1px 0 rgba(0, 212, 255, 0.6);
+}
+
+.glow-red {
+  box-shadow: 0 0 8px 0 rgba(255, 59, 59, 0.35), 0 0 1px 0 rgba(255, 59, 59, 0.6);
+}
+
+.panel {
+  background: var(--color-panel);
+  border: 1px solid rgba(0, 255, 157, 0.15);
+  border-radius: 0.5rem;
+}
+
+.panel-cyan {
+  background: var(--color-panel);
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  border-radius: 0.5rem;
+}
+
+@keyframes scan-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-scan-pulse {
+  animation: scan-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-scan-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 255, 157, 0.15),
+    transparent
+  );
+  animation: scan-sweep 1.6s linear infinite;
+}
+
+.text-glow-green {
+  text-shadow: 0 0 6px rgba(0, 255, 157, 0.6);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 6px rgba(0, 212, 255, 0.6);
+}
