@@ -119,7 +119,7 @@ export function ProspectsExplorer({
             onChange={(e) =>
               setPriorityFilter(e.target.value as Priorite | "tous")
             }
-            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground focus:border-neon-green/60 focus:outline-none"
+            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
           >
             <option value="tous">Toutes priorités</option>
             <option value="tres_elevee">Très élevée</option>
@@ -133,7 +133,7 @@ export function ProspectsExplorer({
             onChange={(e) =>
               setStatusFilter(e.target.value as StatutSuivi | "tous")
             }
-            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground focus:border-neon-green/60 focus:outline-none"
+            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
           >
             <option value="tous">Tous statuts</option>
             <option value="nouveau">Nouveau</option>
@@ -147,7 +147,7 @@ export function ProspectsExplorer({
             <select
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
-              className="rounded-md border border-neon-cyan/20 bg-background px-3 py-2 font-sans text-sm text-foreground focus:border-neon-cyan/60 focus:outline-none"
+              className="rounded-md border border-neon-cyan/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-cyan/40 focus:border-neon-cyan/60 focus:outline-none"
             >
               <option value="score">Trier par score</option>
               <option value="statut">Trier par statut</option>

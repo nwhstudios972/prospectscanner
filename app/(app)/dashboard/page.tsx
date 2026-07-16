@@ -6,7 +6,11 @@ import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
 import { ScanStatusBadge } from "@/components/ui/Badge";
 import { WelcomeBanner } from "@/components/WelcomeBanner";
-import { getDashboardStats, getRecentScans } from "@/lib/queries";
+import {
+  getDashboardStats,
+  getInfosBienvenue,
+  getRecentScans,
+} from "@/lib/queries";
 import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +27,19 @@ export default async function DashboardPage({
     getRecentScans(),
   ]);
 
+  const afficherBienvenue = bienvenue === "1" && Boolean(session?.user?.email);
+  const infosBienvenue = afficherBienvenue
+    ? await getInfosBienvenue(session!.user!.email!)
+    : null;
+
   return (
     <div>
-      {bienvenue === "1" && session?.user?.email && (
-        <WelcomeBanner email={session.user.email} />
+      {afficherBienvenue && infosBienvenue && (
+        <WelcomeBanner
+          email={session!.user!.email!}
+          derniereConnexion={infosBienvenue.derniereConnexion}
+          nouveauxProspects={infosBienvenue.nouveauxProspects}
+        />
       )}
       <PageHeader
         title="Dashboard"

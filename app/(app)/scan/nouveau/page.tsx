@@ -64,7 +64,7 @@ export default function NouveauScanPage() {
             <select
               value={secteur}
               onChange={(e) => setSecteur(e.target.value)}
-              className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground focus:border-neon-green/60 focus:outline-none"
+              className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
             >
               {SECTEURS.map((s) => (
                 <option key={s} value={s}>

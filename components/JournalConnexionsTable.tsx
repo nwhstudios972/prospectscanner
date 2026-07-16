@@ -92,7 +92,7 @@ export function JournalConnexionsTable({
         <select
           value={filtreEmail}
           onChange={(e) => setFiltreEmail(e.target.value)}
-          className="rounded-md border border-neon-green/20 bg-background px-3 py-1.5 font-mono text-xs text-foreground focus:border-neon-green/60 focus:outline-none"
+          className="rounded-md border border-neon-green/20 bg-background px-3 py-1.5 font-mono text-xs text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
         >
           <option value="tous">Tous ({entrees.length})</option>
           {emails.map((email) => (

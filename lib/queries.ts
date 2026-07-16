@@ -101,3 +101,30 @@ export async function getJournalConnexions() {
     orderBy: { connecte_a: "desc" },
   });
 }
+
+export interface InfosBienvenue {
+  derniereConnexion: Date | null;
+  nouveauxProspects: number;
+}
+
+// Le journal de connexion enregistre déjà la connexion en cours au moment
+// où le dashboard est affiché : la connexion précédente est donc la 2e plus
+// récente, pas la 1re.
+export async function getInfosBienvenue(email: string): Promise<InfosBienvenue> {
+  const connexions = await prisma.journalConnexion.findMany({
+    where: { email, type_evenement: "connexion" },
+    orderBy: { connecte_a: "desc" },
+    take: 2,
+    select: { connecte_a: true },
+  });
+
+  const derniereConnexion = connexions[1]?.connecte_a ?? null;
+
+  const nouveauxProspects = derniereConnexion
+    ? await prisma.prospect.count({
+        where: { date_calcul: { gt: derniereConnexion } },
+      })
+    : 0;
+
+  return { derniereConnexion, nouveauxProspects };
+}
