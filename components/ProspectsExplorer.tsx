@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Download, ArrowUp, ArrowDown } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -32,6 +33,7 @@ export function ProspectsExplorer({
 }: {
   prospects: ProspectWithEtablissement[];
 }) {
+  const router = useRouter();
   const [prospects, setProspects] = useState(prospectsInitiaux);
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<Priorite | "tous">(
@@ -188,7 +190,8 @@ export function ProspectsExplorer({
           {filteredProspects.map((prospect) => (
             <Card
               key={prospect.id}
-              className="group relative flex flex-col gap-3"
+              onClick={() => router.push(`/prospects/${prospect.id}`)}
+              className="clickable group relative flex flex-col gap-3"
             >
               <ProspectHoverPreview prospect={prospect} />
 
