@@ -31,6 +31,23 @@
   scrollbar-width: thin;
 }
 
+/* Curseur pointer automatique sur tout élément interactif, site entier :
+   évite d'avoir à le rajouter manuellement à chaque nouveau composant. */
+a[href],
+button:not(:disabled),
+select,
+input[type="checkbox"],
+input[type="radio"],
+[role="button"],
+.clickable {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
