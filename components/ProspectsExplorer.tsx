@@ -10,14 +10,16 @@ import {
   PriorityBadge,
   ProspectStatusBadge,
   ScoreBadge,
+  EntrepreneurIndividuelBadge,
 } from "@/components/ui/Badge";
 import { ProspectStatusActions } from "@/components/ProspectStatusActions";
 import { ProspectHoverPreview } from "@/components/ProspectHoverPreview";
 import type { ProspectWithEtablissement } from "@/lib/queries";
 import type { Priorite, StatutSuivi } from "@/types";
 import { downloadCsv, prospectsToCsv } from "@/lib/csv";
+import { estEntrepreneurIndividuel } from "@/lib/pipeline/sirene";
 
-type SortKey = "score" | "nom" | "date" | "statut";
+type SortKey = "score" | "nom" | "date" | "statut" | "metier";
 type SortDirection = "asc" | "desc";
 
 const ORDRE_STATUT: Record<StatutSuivi, number> = {
@@ -42,8 +44,19 @@ export function ProspectsExplorer({
   const [statusFilter, setStatusFilter] = useState<StatutSuivi | "tous">(
     "tous",
   );
+  const [metierFilter, setMetierFilter] = useState<string>("tous");
+  const [entrepreneurIndividuelFilter, setEntrepreneurIndividuelFilter] =
+    useState<"tous" | "oui" | "non">("tous");
   const [sortKey, setSortKey] = useState<SortKey>("score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const metiers = useMemo(
+    () =>
+      Array.from(
+        new Set(prospects.map((p) => p.etablissement.secteur)),
+      ).sort((a, b) => a.localeCompare(b)),
+    [prospects],
+  );
 
   function handleStatusChange(prospectId: string, statut: StatutSuivi) {
     setProspects((precedents) =>
@@ -65,6 +78,10 @@ export function ProspectsExplorer({
           return a.etablissement.nom.localeCompare(b.etablissement.nom);
         case "statut":
           return ORDRE_STATUT[a.statut_suivi] - ORDRE_STATUT[b.statut_suivi];
+        case "metier":
+          return a.etablissement.secteur.localeCompare(
+            b.etablissement.secteur,
+          );
         case "date":
         default:
           return (
@@ -84,12 +101,35 @@ export function ProspectsExplorer({
           priorityFilter === "tous" || p.priorite === priorityFilter;
         const matchesStatus =
           statusFilter === "tous" || p.statut_suivi === statusFilter;
-        return matchesSearch && matchesPriority && matchesStatus;
+        const matchesMetier =
+          metierFilter === "tous" || p.etablissement.secteur === metierFilter;
+        const estEI = estEntrepreneurIndividuel(
+          p.etablissement.nature_juridique,
+        );
+        const matchesEntrepreneurIndividuel =
+          entrepreneurIndividuelFilter === "tous" ||
+          (entrepreneurIndividuelFilter === "oui" ? estEI : !estEI);
+        return (
+          matchesSearch &&
+          matchesPriority &&
+          matchesStatus &&
+          matchesMetier &&
+          matchesEntrepreneurIndividuel
+        );
       })
       .sort((a, b) =>
         sortDirection === "asc" ? comparerAsc(a, b) : -comparerAsc(a, b),
       );
-  }, [prospects, search, priorityFilter, statusFilter, sortKey, sortDirection]);
+  }, [
+    prospects,
+    search,
+    priorityFilter,
+    statusFilter,
+    metierFilter,
+    entrepreneurIndividuelFilter,
+    sortKey,
+    sortDirection,
+  ]);
 
   function handleExportCsv() {
     const csv = prospectsToCsv(filteredProspects);
@@ -143,6 +183,33 @@ export function ProspectsExplorer({
             <option value="en_negociation">En négociation</option>
             <option value="converti">Converti</option>
             <option value="perdu">Perdu</option>
+          </select>
+
+          <select
+            value={metierFilter}
+            onChange={(e) => setMetierFilter(e.target.value)}
+            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
+          >
+            <option value="tous">Tous métiers</option>
+            {metiers.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={entrepreneurIndividuelFilter}
+            onChange={(e) =>
+              setEntrepreneurIndividuelFilter(
+                e.target.value as "tous" | "oui" | "non",
+              )
+            }
+            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
+          >
+            <option value="tous">EI : tous</option>
+            <option value="oui">EI uniquement</option>
+            <option value="non">Hors EI</option>
           </select>
 
           <div className="flex items-center gap-1">
@@ -215,6 +282,9 @@ export function ProspectsExplorer({
                 </Link>
 
                 <div className="flex items-center gap-3">
+                  {estEntrepreneurIndividuel(
+                    prospect.etablissement.nature_juridique,
+                  ) && <EntrepreneurIndividuelBadge />}
                   <ProspectStatusBadge status={prospect.statut_suivi} />
                   <PriorityBadge priority={prospect.priorite} />
                   <ScoreBadge score={prospect.score} />

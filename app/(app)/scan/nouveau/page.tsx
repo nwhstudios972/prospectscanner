@@ -6,19 +6,11 @@ import { RadarIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-
-const SECTEURS = [
-  "Garages automobiles",
-  "Hôtels & chambres d'hôtes",
-  "Restaurants",
-  "Salons de coiffure",
-  "Artisans du bâtiment",
-  "Fleuristes",
-];
+import { METIERS_SUGGERES } from "@/lib/metiers";
 
 export default function NouveauScanPage() {
   const router = useRouter();
-  const [secteur, setSecteur] = useState(SECTEURS[0]);
+  const [secteur, setSecteur] = useState("");
   const [ville, setVille] = useState("");
   const [rayon, setRayon] = useState(15);
   const [submitting, setSubmitting] = useState(false);
@@ -61,17 +53,20 @@ export default function NouveauScanPage() {
             <label className="font-sans text-xs uppercase tracking-wider text-foreground/50">
               Secteur d&apos;activité
             </label>
-            <select
+            <input
+              type="text"
+              required
+              list="metiers-suggeres"
               value={secteur}
               onChange={(e) => setSecteur(e.target.value)}
-              className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
-            >
-              {SECTEURS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
+              placeholder="Ex : Garages automobiles"
+              className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground placeholder:text-foreground/30 transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
+            />
+            <datalist id="metiers-suggeres">
+              {METIERS_SUGGERES.map((m) => (
+                <option key={m} value={m} />
               ))}
-            </select>
+            </datalist>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -111,7 +106,7 @@ export default function NouveauScanPage() {
             <p className="font-sans text-sm text-neon-red">{erreur}</p>
           )}
 
-          <Button type="submit" disabled={submitting || !ville}>
+          <Button type="submit" disabled={submitting || !ville || !secteur}>
             <RadarIcon className="h-4 w-4" />
             {submitting ? "Lancement du scan..." : "Lancer le scan"}
           </Button>

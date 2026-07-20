@@ -124,3 +124,11 @@ export function ProspectStatusBadge({ status }: { status: ProspectStatus }) {
   const config = prospectStatusConfig[status];
   return <Badge className={config.className}>{config.label}</Badge>;
 }
+
+export function EntrepreneurIndividuelBadge() {
+  return (
+    <Badge className="border-neon-orange/40 text-neon-orange bg-neon-orange/10">
+      ENTREPRENEUR INDIVIDUEL
+    </Badge>
+  );
+}

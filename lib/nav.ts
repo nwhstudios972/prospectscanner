@@ -40,6 +40,7 @@ export const navItems: NavItem[] = [
     href: "/parametres",
     icon: Settings,
     matchPrefixes: ["/parametres"],
+    adminUniquement: true,
   },
   {
     label: "Utilisateurs",

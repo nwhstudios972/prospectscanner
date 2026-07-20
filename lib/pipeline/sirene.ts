@@ -3,7 +3,20 @@ import { similarite } from "@/lib/pipeline/matching";
 export interface SireneMatch {
   siret: string;
   statut: "actif" | "ferme";
+  natureJuridique: string | null;
   confiance: number;
+}
+
+// Nomenclature INSEE des catégories juridiques : les codes commençant par "1"
+// désignent les personnes physiques (entrepreneurs individuels), régime sous
+// lequel s'inscrivent quasi systématiquement les auto-entrepreneurs /
+// micro-entrepreneurs. Le registre SIRENE ne distingue pas le régime fiscal
+// "micro-entreprise" en tant que tel, donc c'est la meilleure approximation
+// disponible via cette API.
+export function estEntrepreneurIndividuel(
+  natureJuridique: string | null,
+): boolean {
+  return natureJuridique !== null && natureJuridique.startsWith("1");
 }
 
 interface SireneEtablissement {
@@ -17,6 +30,7 @@ interface SireneResultat {
   nom_complet: string;
   nom_raison_sociale: string | null;
   sigle: string | null;
+  nature_juridique: string | null;
   matching_etablissements: SireneEtablissement[];
   siege: SireneEtablissement | null;
 }
@@ -86,6 +100,7 @@ export async function rechercherSiret(
             siret: etablissement.siret,
             statut:
               etablissement.etat_administratif === "A" ? "actif" : "ferme",
+            natureJuridique: resultat.nature_juridique,
             confiance: score,
           },
         };

@@ -1,11 +1,18 @@
+import { redirect } from "next/navigation";
 import { KeyRound, CheckCircle2, XCircle } from "lucide-react";
+import { auth } from "@/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ChangerMotDePasseForm } from "@/components/ChangerMotDePasseForm";
 import { mockApiKeys } from "@/lib/mock-data";
 
-export default function ParametresPage() {
+export default async function ParametresPage() {
+  const session = await auth();
+  if (!session?.user?.est_admin) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="max-w-3xl">
       <PageHeader

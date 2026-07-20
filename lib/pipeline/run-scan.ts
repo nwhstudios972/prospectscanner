@@ -46,12 +46,14 @@ export async function executerScan(scanId: string): Promise<void> {
 
       let siret: string | null = null;
       let statutSiret: "actif" | "ferme" | null = null;
+      let natureJuridique: string | null = null;
 
       try {
         const match = await rechercherSiret(place.nom, codePostal);
         if (match) {
           siret = match.siret;
           statutSiret = match.statut;
+          natureJuridique = match.natureJuridique;
         }
       } catch (error) {
         console.warn(
@@ -92,6 +94,7 @@ export async function executerScan(scanId: string): Promise<void> {
           telephone: place.telephone,
           siret,
           statut_siret: statutSiret,
+          nature_juridique: natureJuridique,
           note_google: place.note,
           nombre_avis_google: place.nombreAvis,
           presences: {

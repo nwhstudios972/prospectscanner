@@ -90,6 +90,7 @@ model Etablissement {
   telephone          String?
   siret              String?
   statut_siret       String?
+  nature_juridique   String?
   note_google        Float?
   nombre_avis_google Int?
   date_creation      DateTime @default(now())
