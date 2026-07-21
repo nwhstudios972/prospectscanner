@@ -1,16 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { geocoderVille } from "@/lib/pipeline/geocode";
-import { rechercherEtablissements } from "@/lib/pipeline/google-places";
+import {
+  rechercherEtablissements,
+  type PlaceResultat,
+} from "@/lib/pipeline/google-places";
 import { rechercherSiret } from "@/lib/pipeline/sirene";
 import { extraireCodePostal } from "@/lib/pipeline/matching";
 import { calculerScore } from "@/lib/pipeline/scoring";
 import { notifierSiProspectPrioritaire } from "@/lib/notifications/telegram";
+import type { Scan } from "@/lib/generated/prisma/client";
 import type { ProspectWithDetails } from "@/lib/queries";
 
-const DELAI_ENTRE_APPELS_SIRENE_MS = 200;
+// Les établissements sont traités par petits lots concurrents plutôt qu'un
+// par un : ça divise le temps total d'un scan par ~TAILLE_LOT tout en
+// gardant une pause entre les lots pour ménager l'API SIRENE.
+const TAILLE_LOT = 5;
+const DELAI_ENTRE_LOTS_SIRENE_MS = 200;
 
 function attendre(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function decouperEnLots<T>(items: T[], taille: number): T[][] {
+  const lots: T[][] = [];
+  for (let i = 0; i < items.length; i += taille) {
+    lots.push(items.slice(i, i + taille));
+  }
+  return lots;
 }
 
 export async function executerScan(scanId: string): Promise<void> {
@@ -39,110 +55,45 @@ export async function executerScan(scanId: string): Promise<void> {
       data: { nombre_etablissements_trouves: places.length },
     });
 
+    // Dédoublonnage en une seule requête : un même établissement Google
+    // (place_id) ne doit être écrit qu'une fois, même si un nouveau scan
+    // retombe dessus.
+    const dejaExistants = await prisma.etablissement.findMany({
+      where: { google_place_id: { in: places.map((p) => p.placeId) } },
+      select: { google_place_id: true },
+    });
+    const placeIdsExistants = new Set(dejaExistants.map((e) => e.google_place_id));
+
     let prospectsQualifies = 0;
 
-    for (const place of places) {
-      const codePostal = extraireCodePostal(place.adresse);
+    for (const lot of decouperEnLots(places, TAILLE_LOT)) {
+      const resultats = await Promise.all(
+        lot.map((place) =>
+          traiterEtablissement(scanId, scan, place, placeIdsExistants),
+        ),
+      );
+      const prospectsDuLot = resultats.filter(
+        (r): r is ProspectWithDetails => r !== null,
+      );
 
-      let siret: string | null = null;
-      let statutSiret: "actif" | "ferme" | null = null;
-      let natureJuridique: string | null = null;
+      if (prospectsDuLot.length > 0) {
+        prospectsQualifies += prospectsDuLot.length;
+        await prisma.scan.update({
+          where: { id: scanId },
+          data: { nombre_prospects_qualifies: prospectsQualifies },
+        });
 
-      try {
-        const match = await rechercherSiret(place.nom, codePostal);
-        if (match) {
-          siret = match.siret;
-          statutSiret = match.statut;
-          natureJuridique = match.natureJuridique;
+        for (const prospectDetail of prospectsDuLot) {
+          void notifierSiProspectPrioritaire(prospectDetail).catch((error) =>
+            console.warn(
+              `[scan ${scanId}] notification Telegram échouée :`,
+              error,
+            ),
+          );
         }
-      } catch (error) {
-        console.warn(
-          `[scan ${scanId}] recherche SIRENE échouée pour "${place.nom}" :`,
-          error,
-        );
-      }
-      await attendre(DELAI_ENTRE_APPELS_SIRENE_MS);
-
-      const aSiteWeb = Boolean(place.siteWeb);
-      const { score, priorite } = calculerScore({
-        aSiteWeb,
-        noteGoogle: place.note,
-        nombreAvisGoogle: place.nombreAvis,
-        statutSiret,
-      });
-
-      // Dédoublonnage : un même établissement Google (place_id) ne doit être
-      // écrit qu'une fois, même si un nouveau scan retombe dessus.
-      const dejaExistant = await prisma.etablissement.findUnique({
-        where: { google_place_id: place.placeId },
-      });
-      if (dejaExistant) {
-        console.warn(
-          `[scan ${scanId}] "${place.nom}" (${place.placeId}) déjà présent en base (scan ${dejaExistant.scan_id}), ignoré.`,
-        );
-        continue;
       }
 
-      const etablissement = await prisma.etablissement.create({
-        data: {
-          scan_id: scanId,
-          google_place_id: place.placeId,
-          nom: place.nom,
-          secteur: scan.secteur,
-          ville: scan.ville,
-          adresse: place.adresse,
-          telephone: place.telephone,
-          siret,
-          statut_siret: statutSiret,
-          nature_juridique: natureJuridique,
-          note_google: place.note,
-          nombre_avis_google: place.nombreAvis,
-          presences: {
-            create: [
-              {
-                plateforme: "site_web",
-                trouve: aSiteWeb,
-                url: place.siteWeb,
-              },
-            ],
-          },
-          prospect: {
-            create: {
-              score,
-              priorite,
-              a_site_web: aSiteWeb,
-              analyse_commerciale: construireAnalyse({
-                aSiteWeb,
-                note: place.note,
-                nombreAvis: place.nombreAvis,
-                statutSiret,
-              }),
-            },
-          },
-        },
-        include: {
-          presences: true,
-          prospect: true,
-          scan: true,
-        },
-      });
-
-      prospectsQualifies++;
-
-      await prisma.scan.update({
-        where: { id: scanId },
-        data: { nombre_prospects_qualifies: prospectsQualifies },
-      });
-
-      if (etablissement.prospect) {
-        const prospectDetail: ProspectWithDetails = {
-          ...etablissement.prospect,
-          etablissement,
-        };
-        await notifierSiProspectPrioritaire(prospectDetail).catch((error) =>
-          console.warn(`[scan ${scanId}] notification Telegram échouée :`, error),
-        );
-      }
+      await attendre(DELAI_ENTRE_LOTS_SIRENE_MS);
     }
 
     await prisma.scan.update({
@@ -161,6 +112,96 @@ export async function executerScan(scanId: string): Promise<void> {
       },
     });
   }
+}
+
+async function traiterEtablissement(
+  scanId: string,
+  scan: Scan,
+  place: PlaceResultat,
+  placeIdsExistants: Set<string | null>,
+): Promise<ProspectWithDetails | null> {
+  if (placeIdsExistants.has(place.placeId)) {
+    console.warn(
+      `[scan ${scanId}] "${place.nom}" (${place.placeId}) déjà présent en base, ignoré.`,
+    );
+    return null;
+  }
+
+  const codePostal = extraireCodePostal(place.adresse);
+
+  let siret: string | null = null;
+  let statutSiret: "actif" | "ferme" | null = null;
+  let natureJuridique: string | null = null;
+
+  try {
+    const match = await rechercherSiret(place.nom, codePostal);
+    if (match) {
+      siret = match.siret;
+      statutSiret = match.statut;
+      natureJuridique = match.natureJuridique;
+    }
+  } catch (error) {
+    console.warn(
+      `[scan ${scanId}] recherche SIRENE échouée pour "${place.nom}" :`,
+      error,
+    );
+  }
+
+  const aSiteWeb = Boolean(place.siteWeb);
+  const { score, priorite } = calculerScore({
+    aSiteWeb,
+    noteGoogle: place.note,
+    nombreAvisGoogle: place.nombreAvis,
+    statutSiret,
+  });
+
+  const etablissement = await prisma.etablissement.create({
+    data: {
+      scan_id: scanId,
+      google_place_id: place.placeId,
+      nom: place.nom,
+      secteur: scan.secteur,
+      ville: scan.ville,
+      adresse: place.adresse,
+      telephone: place.telephone,
+      siret,
+      statut_siret: statutSiret,
+      nature_juridique: natureJuridique,
+      note_google: place.note,
+      nombre_avis_google: place.nombreAvis,
+      presences: {
+        create: [
+          {
+            plateforme: "site_web",
+            trouve: aSiteWeb,
+            url: place.siteWeb,
+          },
+        ],
+      },
+      prospect: {
+        create: {
+          score,
+          priorite,
+          a_site_web: aSiteWeb,
+          analyse_commerciale: construireAnalyse({
+            aSiteWeb,
+            note: place.note,
+            nombreAvis: place.nombreAvis,
+            statutSiret,
+          }),
+        },
+      },
+    },
+    include: {
+      presences: true,
+      prospect: true,
+      scan: true,
+    },
+  });
+
+  if (!etablissement.prospect) return null;
+
+  return { ...etablissement.prospect, etablissement };
 }
 
 function construireAnalyse(donnees: {
