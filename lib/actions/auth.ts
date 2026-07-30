@@ -17,7 +17,7 @@ export async function authenticate(
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return "Identifiants ou code de verification incorrects.";
+      return "Identifiants incorrects, ou code invalide/expiré — renvoyez un code si besoin.";
     }
     throw error;
   }

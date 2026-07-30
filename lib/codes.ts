@@ -5,7 +5,7 @@ import type { TypeCodeVerification } from "@/lib/generated/prisma/enums";
 const DUREES_VALIDITE_MINUTES: Record<TypeCodeVerification, number> = {
   reinitialisation_mdp: 10,
   changement_mdp: 10,
-  connexion: 5,
+  connexion: 10,
 };
 
 const MAX_TENTATIVES = 5;

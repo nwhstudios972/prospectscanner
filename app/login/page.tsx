@@ -183,7 +183,7 @@ export default function LoginPage() {
           <form onSubmit={soumettreCode} className="flex flex-col gap-4">
             <p className="font-sans text-xs text-foreground/50">
               Un code à 6 chiffres a été envoyé à <span className="text-foreground/80">{email}</span>.
-              Il est valable 5 minutes.
+              Il est valable 10 minutes.
             </p>
 
             <div className="flex items-center gap-2 rounded-md border border-neon-green/20 bg-background px-3 py-2 focus-within:border-neon-green/60">
