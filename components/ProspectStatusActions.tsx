@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, X, Clock } from "lucide-react";
+import { Check, X, Clock, MailQuestion } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { StatutSuivi } from "@/types";
 
 const CIBLE_VALIDER: StatutSuivi = "converti";
 const CIBLE_NON_CONCLUANT: StatutSuivi = "perdu";
 const CIBLE_EN_ATTENTE: StatutSuivi = "en_negociation";
+const CIBLE_SANS_REPONSE: StatutSuivi = "sans_reponse";
 
 interface ProspectStatusActionsProps {
   prospectId: string;
@@ -74,6 +75,15 @@ export function ProspectStatusActions({
       >
         <Clock className="h-3.5 w-3.5" />
         {isPending && pendingCible === CIBLE_EN_ATTENTE ? "..." : "Mettre en attente"}
+      </Button>
+      <Button
+        variant="secondary"
+        size={size}
+        disabled={isPending || statutSuivi === CIBLE_SANS_REPONSE}
+        onClick={() => appliquerStatut(CIBLE_SANS_REPONSE)}
+      >
+        <MailQuestion className="h-3.5 w-3.5" />
+        {isPending && pendingCible === CIBLE_SANS_REPONSE ? "..." : "Pas de réponse"}
       </Button>
       <Button
         variant="danger"

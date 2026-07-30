@@ -41,6 +41,7 @@ enum Priorite {
 enum StatutSuivi {
   nouveau
   contacte
+  sans_reponse
   en_negociation
   converti
   perdu
@@ -88,6 +89,7 @@ model Etablissement {
   ville              String
   adresse            String
   telephone          String?
+  email              String?
   siret              String?
   statut_siret       String?
   nature_juridique   String?

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Download, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Download, ArrowUp, ArrowDown, Hash, Mail, MapPinned } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
@@ -18,6 +18,7 @@ import type { ProspectWithEtablissement } from "@/lib/queries";
 import type { Priorite, StatutSuivi } from "@/types";
 import { downloadCsv, prospectsToCsv } from "@/lib/csv";
 import { estEntrepreneurIndividuel } from "@/lib/pipeline/sirene";
+import { urlFicheGoogleMaps } from "@/lib/utils";
 
 type SortKey = "score" | "nom" | "date" | "statut" | "metier";
 type SortDirection = "asc" | "desc";
@@ -25,9 +26,10 @@ type SortDirection = "asc" | "desc";
 const ORDRE_STATUT: Record<StatutSuivi, number> = {
   nouveau: 0,
   contacte: 1,
-  en_negociation: 2,
-  converti: 3,
-  perdu: 4,
+  sans_reponse: 2,
+  en_negociation: 3,
+  converti: 4,
+  perdu: 5,
 };
 
 export function ProspectsExplorer({
@@ -180,6 +182,7 @@ export function ProspectsExplorer({
             <option value="tous">Tous statuts</option>
             <option value="nouveau">Nouveau</option>
             <option value="contacte">Contacté</option>
+            <option value="sans_reponse">Pas de réponse</option>
             <option value="en_negociation">En négociation</option>
             <option value="converti">Converti</option>
             <option value="perdu">Perdu</option>
@@ -290,6 +293,44 @@ export function ProspectsExplorer({
                   <ScoreBadge score={prospect.score} />
                 </div>
               </div>
+
+              {(prospect.etablissement.siret ||
+                prospect.etablissement.email ||
+                prospect.etablissement.google_place_id) && (
+                <div
+                  className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs text-foreground/50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {prospect.etablissement.siret && (
+                    <span className="flex items-center gap-1">
+                      <Hash className="h-3.5 w-3.5" />
+                      {prospect.etablissement.siret}
+                    </span>
+                  )}
+                  {prospect.etablissement.email && (
+                    <a
+                      href={`mailto:${prospect.etablissement.email}`}
+                      className="flex items-center gap-1 hover:text-neon-cyan hover:underline"
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                      {prospect.etablissement.email}
+                    </a>
+                  )}
+                  {prospect.etablissement.google_place_id && (
+                    <a
+                      href={urlFicheGoogleMaps(
+                        prospect.etablissement.google_place_id,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-neon-cyan hover:underline"
+                    >
+                      <MapPinned className="h-3.5 w-3.5" />
+                      Fiche Google
+                    </a>
+                  )}
+                </div>
+              )}
 
               <div className="flex items-center border-t border-white/10 pt-3">
                 <ProspectStatusActions

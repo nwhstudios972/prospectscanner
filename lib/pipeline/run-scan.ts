@@ -5,6 +5,7 @@ import {
   type PlaceResultat,
 } from "@/lib/pipeline/google-places";
 import { rechercherSiret } from "@/lib/pipeline/sirene";
+import { extraireEmailDuSiteWeb } from "@/lib/pipeline/email-scraper";
 import { extraireCodePostal } from "@/lib/pipeline/matching";
 import { calculerScore } from "@/lib/pipeline/scoring";
 import { notifierSiProspectPrioritaire } from "@/lib/notifications/telegram";
@@ -148,6 +149,9 @@ async function traiterEtablissement(
   }
 
   const aSiteWeb = Boolean(place.siteWeb);
+  const email = place.siteWeb
+    ? await extraireEmailDuSiteWeb(place.siteWeb).catch(() => null)
+    : null;
   const { score, priorite } = calculerScore({
     aSiteWeb,
     noteGoogle: place.note,
@@ -164,6 +168,7 @@ async function traiterEtablissement(
       ville: scan.ville,
       adresse: place.adresse,
       telephone: place.telephone,
+      email,
       siret,
       statut_siret: statutSiret,
       nature_juridique: natureJuridique,

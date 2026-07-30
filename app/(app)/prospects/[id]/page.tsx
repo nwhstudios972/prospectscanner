@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Phone, MapPin, Hash, ArrowLeft, Star } from "lucide-react";
+import { Phone, Mail, MapPin, Hash, ArrowLeft, Star, MapPinned } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { PriorityBadge, ScoreBadge } from "@/components/ui/Badge";
@@ -8,6 +8,7 @@ import { SocialLinkBadge } from "@/components/SocialLinkBadge";
 import { TelegramSendButton } from "@/components/TelegramSendButton";
 import { ProspectStatusPanel } from "@/components/ProspectStatusPanel";
 import { getProspectDetail } from "@/lib/queries";
+import { urlFicheGoogleMaps } from "@/lib/utils";
 
 export default async function ProspectDetailPage({
   params,
@@ -66,6 +67,17 @@ export default async function ProspectDetailPage({
               <span className="font-mono">{etablissement.telephone}</span>
             </div>
           )}
+          {etablissement.email && (
+            <div className="flex items-center gap-2 text-sm text-foreground/70">
+              <Mail className="h-4 w-4 text-neon-cyan shrink-0" />
+              <a
+                href={`mailto:${etablissement.email}`}
+                className="font-mono hover:text-neon-cyan hover:underline"
+              >
+                {etablissement.email}
+              </a>
+            </div>
+          )}
           {etablissement.siret && (
             <div className="flex items-center gap-2 text-sm text-foreground/70">
               <Hash className="h-4 w-4 text-neon-cyan shrink-0" />
@@ -80,6 +92,17 @@ export default async function ProspectDetailPage({
                 avis)
               </span>
             </div>
+          )}
+          {etablissement.google_place_id && (
+            <a
+              href={urlFicheGoogleMaps(etablissement.google_place_id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 flex items-center gap-2 text-sm text-neon-cyan hover:underline"
+            >
+              <MapPinned className="h-4 w-4 shrink-0" />
+              Voir la fiche Google (avis, horaires, photos)
+            </a>
           )}
         </Card>
 

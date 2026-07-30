@@ -6,6 +6,7 @@ import type { StatutSuivi } from "@/lib/generated/prisma/enums";
 const STATUTS_VALIDES: StatutSuivi[] = [
   "nouveau",
   "contacte",
+  "sans_reponse",
   "en_negociation",
   "converti",
   "perdu",

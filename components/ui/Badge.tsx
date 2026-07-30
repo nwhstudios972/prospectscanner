@@ -106,6 +106,10 @@ const prospectStatusConfig: Record<
     label: "CONTACTÉ",
     className: "border-white/20 text-foreground/70 bg-white/5",
   },
+  sans_reponse: {
+    label: "PAS DE RÉPONSE",
+    className: "border-neon-orange/50 text-neon-orange bg-neon-orange/10",
+  },
   en_negociation: {
     label: "EN NÉGOCIATION",
     className: "border-neon-green/50 text-neon-green bg-neon-green/10",
