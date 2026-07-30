@@ -41,6 +41,17 @@ export async function getRecentScans(limit = 10) {
   });
 }
 
+// Villes déjà utilisées dans un scan, pour suggestion dans le formulaire de
+// création — la liste s'enrichit d'elle-même à chaque nouvelle ville scannée.
+export async function getVillesSuggerees(): Promise<string[]> {
+  const scans = await prisma.scan.groupBy({
+    by: ["ville"],
+    _count: { ville: true },
+    orderBy: { _count: { ville: "desc" } },
+  });
+  return scans.map((s) => s.ville);
+}
+
 export async function getAllProspects(): Promise<ProspectWithEtablissement[]> {
   return prisma.prospect.findMany({
     include: { etablissement: { include: { presences: true } } },

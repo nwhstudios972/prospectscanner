@@ -6,7 +6,8 @@ import { RadarIcon } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { METIERS_SUGGERES } from "@/lib/metiers";
+import { SecteurPicker } from "@/components/SecteurPicker";
+import { VillePicker } from "@/components/VillePicker";
 
 export default function NouveauScanPage() {
   const router = useRouter();
@@ -53,34 +54,14 @@ export default function NouveauScanPage() {
             <label className="font-sans text-xs uppercase tracking-wider text-foreground/50">
               Secteur d&apos;activité
             </label>
-            <input
-              type="text"
-              required
-              list="metiers-suggeres"
-              value={secteur}
-              onChange={(e) => setSecteur(e.target.value)}
-              placeholder="Ex : Garages automobiles"
-              className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground placeholder:text-foreground/30 transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
-            />
-            <datalist id="metiers-suggeres">
-              {METIERS_SUGGERES.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
+            <SecteurPicker value={secteur} onChange={setSecteur} />
           </div>
 
           <div className="flex flex-col gap-2">
             <label className="font-sans text-xs uppercase tracking-wider text-foreground/50">
               Ville / zone géographique
             </label>
-            <input
-              type="text"
-              required
-              value={ville}
-              onChange={(e) => setVille(e.target.value)}
-              placeholder="Ex : Lyon"
-              className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground placeholder:text-foreground/30 focus:border-neon-green/60 focus:outline-none"
-            />
+            <VillePicker value={ville} onChange={setVille} />
           </div>
 
           <div className="flex flex-col gap-2">
