@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { prisma } from "@/lib/prisma";
+import { verifierCodeVerification } from "@/lib/codes";
 import {
   notifierConnexionReussie,
   notifierTentativeEchouee,
@@ -39,13 +40,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Mot de passe", type: "password" },
+        code: { label: "Code de verification", type: "text" },
       },
       async authorize(credentials, request) {
-        const email = credentials?.email;
+        const email = typeof credentials?.email === "string"
+          ? credentials.email.trim().toLowerCase()
+          : credentials?.email;
         const password = credentials?.password;
+        const code = credentials?.code;
         const adresseIp = extraireAdresseIp(request);
 
-        if (typeof email !== "string" || typeof password !== "string") {
+        if (
+          typeof email !== "string" ||
+          typeof password !== "string" ||
+          typeof code !== "string" ||
+          !/^\d{6}$/.test(code)
+        ) {
           return null;
         }
 
@@ -64,6 +74,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           await notifierTentativeEchouee({ email, adresseIp }).catch((error) =>
             console.warn("[auth] notification d'échec de connexion :", error),
           );
+          return null;
+        }
+
+        const resultatCode = await verifierCodeVerification(
+          utilisateur.id,
+          "connexion",
+          code,
+        );
+        if (resultatCode !== "ok") {
           return null;
         }
 

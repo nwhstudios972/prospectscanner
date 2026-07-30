@@ -12,11 +12,12 @@ export async function authenticate(
     await signIn("credentials", {
       email: formData.get("email"),
       password: formData.get("password"),
+      code: formData.get("code"),
       redirectTo: "/dashboard?bienvenue=1",
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return "Email ou mot de passe incorrect.";
+      return "Identifiants ou code de verification incorrects.";
     }
     throw error;
   }

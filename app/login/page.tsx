@@ -85,30 +85,13 @@ export default function LoginPage() {
     setMessageInfo(null);
     setIsPending(true);
     try {
-      const response = await fetch("/api/auth/verifier-code-connexion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        setErreur(
-          data?.error === "trop_de_tentatives"
-            ? "Trop de tentatives incorrectes. Demandez un nouveau code."
-            : data?.error === "code_expire"
-              ? "Code expiré. Demandez un nouveau code."
-              : "Code incorrect.",
-        );
-        return;
-      }
-
-      // Code confirmé : on finalise réellement la connexion (session,
-      // journal, email "connexion réussie", redirection) via la server
-      // action existante, avec les identifiants déjà validés à l'étape 1.
+      // Le code est vérifié atomiquement côté serveur au moment où la
+      // session est créée. Une requête directe à NextAuth ne peut donc pas
+      // contourner cette seconde étape.
       const formData = new FormData();
       formData.set("email", email);
       formData.set("password", password);
+      formData.set("code", code);
       const erreurFinale = await authenticate(undefined, formData);
       if (erreurFinale) {
         setErreur(erreurFinale);
