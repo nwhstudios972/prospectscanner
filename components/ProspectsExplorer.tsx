@@ -136,7 +136,7 @@ export function ProspectsExplorer({
   function handleExportCsv() {
     const csv = prospectsToCsv(filteredProspects);
     const date = new Date().toISOString().slice(0, 10);
-    downloadCsv(csv, `prospects_${date}.csv`);
+    downloadCsv(csv, `Fiche_utilisateur_psc_${date}.csv`);
   }
 
   function toggleSortDirection() {
