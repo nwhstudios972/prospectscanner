@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { creerCodeVerification } from "@/lib/codes";
+import { creerCodeVerification, peutDemanderNouveauCode } from "@/lib/codes";
 import { notifierCodeVerification } from "@/lib/notifications/email";
 
 // Étape 1 du changement de mot de passe : vérifie l'ancien mot de passe
@@ -34,6 +34,11 @@ export async function POST(request: Request) {
       { error: "ancien_mot_de_passe_incorrect" },
       { status: 400 },
     );
+  }
+
+  const peutDemander = await peutDemanderNouveauCode(utilisateur.id, "changement_mdp");
+  if (!peutDemander) {
+    return NextResponse.json({ error: "trop_de_tentatives" }, { status: 429 });
   }
 
   const code = await creerCodeVerification(utilisateur.id, "changement_mdp");

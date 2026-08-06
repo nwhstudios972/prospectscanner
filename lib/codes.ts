@@ -10,6 +10,7 @@ const DUREES_VALIDITE_MINUTES: Record<TypeCodeVerification, number> = {
 
 const MAX_TENTATIVES = 5;
 const DUREE_BLOCAGE_MINUTES = 15;
+const COOLDOWN_DEMANDE_SECONDES = 60;
 
 function genererCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -19,17 +20,29 @@ export function dureeValiditeMinutes(type: TypeCodeVerification): number {
   return DUREES_VALIDITE_MINUTES[type];
 }
 
-// Anti-brute-force sur le code de connexion : si un code du même type a déjà
-// atteint MAX_TENTATIVES récemment, on refuse d'en générer un nouveau tant
-// que la fenêtre de blocage n'est pas expirée (sinon un "renvoyer le code"
-// répété contournerait la limite de tentatives).
-export async function peutDemanderCodeConnexion(
+// Anti-abus sur la demande d'un nouveau code (connexion, reinitialisation de
+// mot de passe, confirmation de changement) : un cooldown court bloque les
+// demandes repetees rapprochees (email-bombing), et un blocage plus long
+// s'ajoute si un code du meme type a deja atteint MAX_TENTATIVES recemment
+// (sinon un "renvoyer le code" repete contournerait la limite de tentatives).
+export async function peutDemanderNouveauCode(
   utilisateurId: string,
+  type: TypeCodeVerification,
 ): Promise<boolean> {
+  const demandeRecente = await prisma.codeVerification.findFirst({
+    where: {
+      utilisateur_id: utilisateurId,
+      type,
+      date_creation: { gt: new Date(Date.now() - COOLDOWN_DEMANDE_SECONDES * 1000) },
+    },
+    orderBy: { date_creation: "desc" },
+  });
+  if (demandeRecente) return false;
+
   const blocageRecent = await prisma.codeVerification.findFirst({
     where: {
       utilisateur_id: utilisateurId,
-      type: "connexion",
+      type,
       tentatives: { gte: MAX_TENTATIVES },
       date_creation: { gt: new Date(Date.now() - DUREE_BLOCAGE_MINUTES * 60 * 1000) },
     },

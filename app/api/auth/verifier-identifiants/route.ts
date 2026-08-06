@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { creerCodeVerification, peutDemanderCodeConnexion } from "@/lib/codes";
+import { creerCodeVerification, peutDemanderNouveauCode } from "@/lib/codes";
 import {
   notifierCodeVerification,
   notifierTentativeEchouee,
 } from "@/lib/notifications/email";
+import { estEmailValide } from "@/lib/validation";
 
 // Hash factice utilisé quand l'email n'existe pas, pour que bcrypt.compare
 // s'exécute dans tous les cas et éviter une différence de timing qui
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   const password = typeof body?.password === "string" ? body.password : "";
   const adresseIp = extraireAdresseIp(request);
 
-  if (!email || !password) {
+  if (!email || !password || !estEmailValide(email)) {
     return NextResponse.json({ error: "parametres_invalides" }, { status: 400 });
   }
 
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "identifiants_invalides" }, { status: 401 });
   }
 
-  const peutDemander = await peutDemanderCodeConnexion(utilisateur.id);
+  const peutDemander = await peutDemanderNouveauCode(utilisateur.id, "connexion");
   if (!peutDemander) {
     return NextResponse.json({ error: "trop_de_tentatives" }, { status: 429 });
   }

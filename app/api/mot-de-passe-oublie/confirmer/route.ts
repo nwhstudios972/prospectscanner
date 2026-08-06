@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { verifierCodeVerification } from "@/lib/codes";
-import { validerForceMotDePasse } from "@/lib/validation";
+import { estEmailValide, validerForceMotDePasse } from "@/lib/validation";
 import { notifierMotDePasseModifie } from "@/lib/notifications/email";
 
 export async function POST(request: Request) {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   const confirmation =
     typeof body?.confirmation === "string" ? body.confirmation : "";
 
-  if (!email || !code || !nouveau || !confirmation) {
+  if (!email || !code || !nouveau || !confirmation || !estEmailValide(email)) {
     return NextResponse.json({ error: "parametres_invalides" }, { status: 400 });
   }
 

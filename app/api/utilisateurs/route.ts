@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { estEmailValide } from "@/lib/validation";
 
 async function requireAdmin() {
   const session = await auth();
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   const password = typeof body?.password === "string" ? body.password : "";
   const estAdmin = Boolean(body?.est_admin);
 
-  if (!email || password.length < 8) {
+  if (!email || password.length < 8 || !estEmailValide(email)) {
     return NextResponse.json(
       { error: "parametres_invalides" },
       { status: 400 },

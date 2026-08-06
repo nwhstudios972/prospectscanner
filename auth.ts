@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import { prisma } from "@/lib/prisma";
 import { verifierCodeVerification } from "@/lib/codes";
+import { estEmailValide } from "@/lib/validation";
 import {
   notifierConnexionReussie,
   notifierTentativeEchouee,
@@ -54,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           typeof email !== "string" ||
           typeof password !== "string" ||
           typeof code !== "string" ||
+          !estEmailValide(email) ||
           !/^\d{6}$/.test(code)
         ) {
           return null;
