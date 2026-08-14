@@ -3,10 +3,11 @@ import type { Plateforme } from "@/lib/generated/prisma/enums";
 import { urlFicheGoogleMaps } from "@/lib/utils";
 
 function escapeCsvField(value: string): string {
-  if (/[",\n;]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
+  const safeValue = /^[=+\-@\t]/.test(value) ? `'${value}` : value;
+  if (/[",\n;]/.test(safeValue)) {
+    return `"${safeValue.replace(/"/g, '""')}"`;
   }
-  return value;
+  return safeValue;
 }
 
 const PLATEFORMES_LABELS: Record<Plateforme, string> = {
