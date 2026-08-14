@@ -6,6 +6,7 @@ import {
   Settings,
   UserCog,
   ShieldCheck,
+  Globe,
 } from "lucide-react";
 
 export interface NavItem {
@@ -34,6 +35,12 @@ export const navItems: NavItem[] = [
     href: "/prospects",
     icon: Users,
     matchPrefixes: ["/prospects"],
+  },
+  {
+    label: "Carte",
+    href: "/carte",
+    icon: Globe,
+    matchPrefixes: ["/carte"],
   },
   {
     label: "Paramètres",

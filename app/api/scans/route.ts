@@ -22,11 +22,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const RAYON_MAX_KM = 20000; // échelle "monde entier", voir google-places.ts
+
   const scan = await prisma.scan.create({
     data: {
       secteur,
       ville,
-      rayon_km: Math.round(rayonKm),
+      rayon_km: Math.round(Math.min(rayonKm, RAYON_MAX_KM)),
       statut: "en_attente",
     },
   });

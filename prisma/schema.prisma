@@ -93,8 +93,11 @@ model Etablissement {
   siret              String?
   statut_siret       String?
   nature_juridique   String?
+  tranche_effectif_salarie String?
   note_google        Float?
   nombre_avis_google Int?
+  latitude           Float?
+  longitude          Float?
   date_creation      DateTime @default(now())
 
   scan      Scan              @relation(fields: [scan_id], references: [id], onDelete: Cascade)

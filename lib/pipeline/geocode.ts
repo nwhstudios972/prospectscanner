@@ -8,10 +8,9 @@ export interface Coordonnees {
 // https://operations.osmfoundation.org/policies/nominatim/
 export async function geocoderVille(ville: string): Promise<Coordonnees> {
   const url = new URL("https://nominatim.openstreetmap.org/search");
-  url.searchParams.set("q", `${ville}, France`);
+  url.searchParams.set("q", ville);
   url.searchParams.set("format", "json");
   url.searchParams.set("limit", "1");
-  url.searchParams.set("countrycodes", "fr");
 
   const response = await fetch(url, {
     headers: {

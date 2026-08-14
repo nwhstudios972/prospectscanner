@@ -4,7 +4,23 @@ export interface SireneMatch {
   siret: string;
   statut: "actif" | "ferme";
   natureJuridique: string | null;
+  trancheEffectifSalarie: string | null;
   confiance: number;
+}
+
+// Nomenclature INSEE des tranches d'effectif salarié (code "tranche_effectif_salarie") :
+// "21" correspond à 50-99 salariés. On considère qu'à partir de ce seuil, la
+// structure est trop grande pour être une cible de prospection pertinente
+// (l'app cible plutôt les petites entreprises sans présence en ligne solide).
+const SEUIL_GROSSE_ENTREPRISE = "21";
+
+export function estGrosseEntreprise(
+  trancheEffectifSalarie: string | null,
+): boolean {
+  if (!trancheEffectifSalarie || trancheEffectifSalarie === "NN") {
+    return false;
+  }
+  return trancheEffectifSalarie >= SEUIL_GROSSE_ENTREPRISE;
 }
 
 // Nomenclature INSEE des catégories juridiques : les codes commençant par "1"
@@ -31,6 +47,7 @@ interface SireneResultat {
   nom_raison_sociale: string | null;
   sigle: string | null;
   nature_juridique: string | null;
+  tranche_effectif_salarie: string | null;
   matching_etablissements: SireneEtablissement[];
   siege: SireneEtablissement | null;
 }
@@ -101,6 +118,7 @@ export async function rechercherSiret(
             statut:
               etablissement.etat_administratif === "A" ? "actif" : "ferme",
             natureJuridique: resultat.nature_juridique,
+            trancheEffectifSalarie: resultat.tranche_effectif_salarie,
             confiance: score,
           },
         };

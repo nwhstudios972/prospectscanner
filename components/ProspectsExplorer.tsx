@@ -3,7 +3,17 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Download, ArrowUp, ArrowDown, Hash, Mail, MapPinned } from "lucide-react";
+import {
+  Search,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  Hash,
+  Mail,
+  MapPinned,
+  EyeOff,
+  Eye,
+} from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import {
@@ -17,10 +27,10 @@ import { ProspectHoverPreview } from "@/components/ProspectHoverPreview";
 import type { ProspectWithEtablissement } from "@/lib/queries";
 import type { Priorite, StatutSuivi } from "@/types";
 import { downloadCsv, prospectsToCsv } from "@/lib/csv";
-import { estEntrepreneurIndividuel } from "@/lib/pipeline/sirene";
+import { estEntrepreneurIndividuel, estGrosseEntreprise } from "@/lib/pipeline/sirene";
 import { urlFicheGoogleMaps } from "@/lib/utils";
 
-type SortKey = "score" | "nom" | "date" | "statut" | "metier";
+type SortKey = "score" | "nom" | "date" | "statut" | "metier" | "ville";
 type SortDirection = "asc" | "desc";
 
 const ORDRE_STATUT: Record<StatutSuivi, number> = {
@@ -49,6 +59,9 @@ export function ProspectsExplorer({
   const [metierFilter, setMetierFilter] = useState<string>("tous");
   const [entrepreneurIndividuelFilter, setEntrepreneurIndividuelFilter] =
     useState<"tous" | "oui" | "non">("tous");
+  const [afficherRefuses, setAfficherRefuses] = useState(false);
+  const [masquerGrossesEntreprises, setMasquerGrossesEntreprises] =
+    useState(true);
   const [sortKey, setSortKey] = useState<SortKey>("score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -84,6 +97,8 @@ export function ProspectsExplorer({
           return a.etablissement.secteur.localeCompare(
             b.etablissement.secteur,
           );
+        case "ville":
+          return a.etablissement.ville.localeCompare(b.etablissement.ville);
         case "date":
         default:
           return (
@@ -111,12 +126,21 @@ export function ProspectsExplorer({
         const matchesEntrepreneurIndividuel =
           entrepreneurIndividuelFilter === "tous" ||
           (entrepreneurIndividuelFilter === "oui" ? estEI : !estEI);
+        const matchesRefusVisibility =
+          afficherRefuses ||
+          statusFilter === "perdu" ||
+          p.statut_suivi !== "perdu";
+        const matchesTailleEntreprise =
+          !masquerGrossesEntreprises ||
+          !estGrosseEntreprise(p.etablissement.tranche_effectif_salarie);
         return (
           matchesSearch &&
           matchesPriority &&
           matchesStatus &&
           matchesMetier &&
-          matchesEntrepreneurIndividuel
+          matchesEntrepreneurIndividuel &&
+          matchesRefusVisibility &&
+          matchesTailleEntreprise
         );
       })
       .sort((a, b) =>
@@ -129,9 +153,16 @@ export function ProspectsExplorer({
     statusFilter,
     metierFilter,
     entrepreneurIndividuelFilter,
+    afficherRefuses,
+    masquerGrossesEntreprises,
     sortKey,
     sortDirection,
   ]);
+
+  const nombreRefuses = useMemo(
+    () => prospects.filter((p) => p.statut_suivi === "perdu").length,
+    [prospects],
+  );
 
   function handleExportCsv() {
     const csv = prospectsToCsv(filteredProspects);
@@ -215,6 +246,18 @@ export function ProspectsExplorer({
             <option value="non">Hors EI</option>
           </select>
 
+          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground/70 transition-colors hover:border-neon-green/40">
+            <input
+              type="checkbox"
+              checked={masquerGrossesEntreprises}
+              onChange={(e) =>
+                setMasquerGrossesEntreprises(e.target.checked)
+              }
+              className="accent-[#00ff9d]"
+            />
+            Masquer grosses entreprises (50+ sal.)
+          </label>
+
           <div className="flex items-center gap-1">
             <select
               value={sortKey}
@@ -225,6 +268,7 @@ export function ProspectsExplorer({
               <option value="statut">Trier par statut</option>
               <option value="date">Trier par date</option>
               <option value="nom">Trier par nom</option>
+              <option value="ville">Trier par ville</option>
             </select>
             <button
               type="button"
@@ -239,6 +283,25 @@ export function ProspectsExplorer({
               )}
             </button>
           </div>
+
+          {nombreRefuses > 0 && (
+            <Button
+              variant="ghost"
+              onClick={() => setAfficherRefuses((v) => !v)}
+              title={
+                afficherRefuses
+                  ? "Masquer les prospects refusés"
+                  : "Afficher les prospects refusés"
+              }
+            >
+              {afficherRefuses ? (
+                <Eye className="h-4 w-4" />
+              ) : (
+                <EyeOff className="h-4 w-4" />
+              )}
+              Refusés ({nombreRefuses})
+            </Button>
+          )}
 
           <Button
             variant="secondary"

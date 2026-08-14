@@ -133,6 +133,7 @@ async function traiterEtablissement(
   let siret: string | null = null;
   let statutSiret: "actif" | "ferme" | null = null;
   let natureJuridique: string | null = null;
+  let trancheEffectifSalarie: string | null = null;
 
   try {
     const match = await rechercherSiret(place.nom, codePostal);
@@ -140,6 +141,7 @@ async function traiterEtablissement(
       siret = match.siret;
       statutSiret = match.statut;
       natureJuridique = match.natureJuridique;
+      trancheEffectifSalarie = match.trancheEffectifSalarie;
     }
   } catch (error) {
     console.warn(
@@ -172,8 +174,11 @@ async function traiterEtablissement(
       siret,
       statut_siret: statutSiret,
       nature_juridique: natureJuridique,
+      tranche_effectif_salarie: trancheEffectifSalarie,
       note_google: place.note,
       nombre_avis_google: place.nombreAvis,
+      latitude: place.latitude,
+      longitude: place.longitude,
       presences: {
         create: [
           {
