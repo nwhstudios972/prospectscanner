@@ -9,7 +9,7 @@ import { estEmailValide } from "@/lib/validation";
 // enregistré (même logique que l'authentification).
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
 
   if (!email || !estEmailValide(email)) {
     return NextResponse.json({ error: "email_requis" }, { status: 400 });

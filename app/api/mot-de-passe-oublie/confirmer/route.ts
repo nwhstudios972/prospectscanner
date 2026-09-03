@@ -7,7 +7,7 @@ import { notifierMotDePasseModifie } from "@/lib/notifications/email";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   const code = typeof body?.code === "string" ? body.code.trim() : "";
   const nouveau =
     typeof body?.nouveau_mot_de_passe === "string" ? body.nouveau_mot_de_passe : "";
