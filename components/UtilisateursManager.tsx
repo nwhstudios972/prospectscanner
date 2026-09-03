@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserPlus, ShieldCheck, Ban, CheckCircle2 } from "lucide-react";
+import { UserPlus, ShieldCheck, Ban, CheckCircle2, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -28,6 +28,7 @@ export function UtilisateursManager({
   const [isPending, startTransition] = useTransition();
   const [erreurCreation, setErreurCreation] = useState<string | null>(null);
   const [erreursToggle, setErreursToggle] = useState<Record<string, string>>({});
+  const [erreursSuppression, setErreursSuppression] = useState<Record<string, string>>({});
 
   function creerUtilisateur(e: React.FormEvent) {
     e.preventDefault();
@@ -85,6 +86,38 @@ export function UtilisateursManager({
       setUtilisateurs((precedents) =>
         precedents.map((u) => (u.id === id ? { ...u, actif: !actifActuel } : u)),
       );
+    });
+  }
+
+  function supprimerUtilisateur(id: string, email: string) {
+    if (
+      !window.confirm(
+        `Supprimer définitivement le compte ${email} ? Cette action est irréversible.`,
+      )
+    ) {
+      return;
+    }
+    setErreursSuppression((precedents) => ({ ...precedents, [id]: "" }));
+    startTransition(async () => {
+      const response = await fetch(`/api/utilisateurs/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        setErreursSuppression((precedents) => ({
+          ...precedents,
+          [id]:
+            data?.error === "dernier_admin_actif"
+              ? "Impossible : dernier administrateur actif."
+              : data?.error === "auto_suppression_interdite"
+                ? "Vous ne pouvez pas supprimer votre propre compte."
+                : "Échec de la suppression.",
+        }));
+        return;
+      }
+
+      setUtilisateurs((precedents) => precedents.filter((u) => u.id !== id));
     });
   }
 
@@ -170,26 +203,42 @@ export function UtilisateursManager({
                   {erreursToggle[utilisateur.id]}
                 </p>
               )}
+              {erreursSuppression[utilisateur.id] && (
+                <p className="font-mono text-xs text-neon-red">
+                  {erreursSuppression[utilisateur.id]}
+                </p>
+              )}
             </div>
 
-            <Button
-              variant={utilisateur.actif ? "danger" : "primary"}
-              size="sm"
-              disabled={isPending || utilisateur.id === idUtilisateurCourant}
-              onClick={() => toggleActif(utilisateur.id, utilisateur.actif)}
-            >
-              {utilisateur.actif ? (
-                <>
-                  <Ban className="h-3.5 w-3.5" />
-                  Désactiver
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Réactiver
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={utilisateur.actif ? "danger" : "primary"}
+                size="sm"
+                disabled={isPending || utilisateur.id === idUtilisateurCourant}
+                onClick={() => toggleActif(utilisateur.id, utilisateur.actif)}
+              >
+                {utilisateur.actif ? (
+                  <>
+                    <Ban className="h-3.5 w-3.5" />
+                    Désactiver
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Réactiver
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={isPending || utilisateur.id === idUtilisateurCourant}
+                onClick={() => supprimerUtilisateur(utilisateur.id, utilisateur.email)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Supprimer
+              </Button>
+            </div>
           </Card>
         ))}
       </div>
