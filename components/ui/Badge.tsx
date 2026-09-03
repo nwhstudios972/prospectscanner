@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import type {
   ProspectPriority,
   ProspectStatus,
+  ProspectSegment,
   ScanStatus,
 } from "@/types";
 
@@ -126,6 +127,30 @@ const prospectStatusConfig: Record<
 
 export function ProspectStatusBadge({ status }: { status: ProspectStatus }) {
   const config = prospectStatusConfig[status];
+  return <Badge className={config.className}>{config.label}</Badge>;
+}
+
+const segmentConfig: Record<ProspectSegment, { label: string; className: string }> = {
+  fort_potentiel: {
+    label: "FORT POTENTIEL",
+    className: "border-neon-green/50 text-neon-green bg-neon-green/10",
+  },
+  a_developper: {
+    label: "À DÉVELOPPER",
+    className: "border-neon-cyan/50 text-neon-cyan bg-neon-cyan/10",
+  },
+  stable: {
+    label: "STABLE",
+    className: "border-white/20 text-foreground/70 bg-white/5",
+  },
+  a_risque: {
+    label: "À RISQUE",
+    className: "border-neon-red/50 text-neon-red bg-neon-red/10",
+  },
+};
+
+export function SegmentBadge({ segment }: { segment: ProspectSegment }) {
+  const config = segmentConfig[segment];
   return <Badge className={config.className}>{config.label}</Badge>;
 }
 

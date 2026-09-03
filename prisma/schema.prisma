@@ -63,6 +63,31 @@ enum TypeCodeVerification {
   connexion
 }
 
+enum CategorieTechnologie {
+  cms
+  ecommerce
+  crm_marketing
+  analytics
+  paiement
+  autre
+}
+
+enum TypeEvenementBusiness {
+  depot_comptes
+  procedure_collective
+  modification
+  radiation
+  marche_public
+  recrutement
+}
+
+enum Segment {
+  fort_potentiel
+  a_developper
+  stable
+  a_risque
+}
+
 model Scan {
   id                            String     @id @default(cuid())
   statut                        StatutScan @default(en_attente)
@@ -81,30 +106,132 @@ model Scan {
 }
 
 model Etablissement {
-  id                 String   @id @default(cuid())
-  scan_id            String
-  google_place_id    String?  @unique
-  nom                String
-  secteur            String
-  ville              String
-  adresse            String
-  telephone          String?
-  email              String?
-  siret              String?
-  statut_siret       String?
-  nature_juridique   String?
+  id                       String   @id @default(cuid())
+  scan_id                  String
+  google_place_id          String?  @unique
+  nom                      String
+  secteur                  String
+  ville                    String
+  adresse                  String
+  telephone                String?
+  email                    String?
+  siret                    String?
+  statut_siret             String?
+  nature_juridique         String?
   tranche_effectif_salarie String?
-  note_google        Float?
-  nombre_avis_google Int?
-  latitude           Float?
-  longitude          Float?
-  date_creation      DateTime @default(now())
+  note_google              Float?
+  nombre_avis_google       Int?
+  latitude                 Float?
+  longitude                Float?
+  date_creation            DateTime @default(now())
 
-  scan      Scan              @relation(fields: [scan_id], references: [id], onDelete: Cascade)
-  presences PresenceEnLigne[]
-  prospect  Prospect?
+  // Identification étendue (recherche-entreprises.api.gouv.fr / BODACC)
+  forme_juridique          String?
+  nom_commercial           String?
+  date_creation_entreprise DateTime?
+  categorie_entreprise     String?
+  tva_intracommunautaire   String?
+  nombre_etablissements    Int?
+  score_performance_web    Int?
+  score_seo_web            Int?
+  score_autorite_domaine   Int?
+
+  scan                 Scan                   @relation(fields: [scan_id], references: [id], onDelete: Cascade)
+  presences            PresenceEnLigne[]
+  prospect             Prospect?
+  dirigeants           Dirigeant[]
+  donneesFinancieres   DonneeFinanciere[]
+  technologies         TechnologieDetectee[]
+  evenements           EvenementBusiness[]
+  historiqueReputation HistoriqueReputation[]
+  produitsEcommerce    ProduitEcommerce[]
 
   @@map("etablissements")
+}
+
+model Dirigeant {
+  id                    String  @id @default(cuid())
+  etablissement_id      String
+  nom                   String?
+  prenoms               String?
+  qualite               String?
+  type_dirigeant        String?
+  annee_naissance       String?
+  denomination          String?
+  siren_personne_morale String?
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@map("dirigeants")
+}
+
+model DonneeFinanciere {
+  id               String @id @default(cuid())
+  etablissement_id String
+  annee            String
+  chiffre_affaires Int?
+  resultat_net     Int?
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@unique([etablissement_id, annee])
+  @@map("donnees_financieres")
+}
+
+model TechnologieDetectee {
+  id               String               @id @default(cuid())
+  etablissement_id String
+  categorie        CategorieTechnologie
+  nom              String
+  detecte_le       DateTime             @default(now())
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@unique([etablissement_id, nom])
+  @@map("technologies_detectees")
+}
+
+model EvenementBusiness {
+  id               String                @id @default(cuid())
+  etablissement_id String
+  type             TypeEvenementBusiness
+  date_evenement   DateTime
+  titre            String
+  description      String?
+  source           String
+  url              String?
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@index([etablissement_id, date_evenement])
+  @@map("evenements_business")
+}
+
+model ProduitEcommerce {
+  id               String   @id @default(cuid())
+  etablissement_id String
+  nom              String
+  prix             Float?
+  devise           String?
+  url              String?
+  detecte_le       DateTime @default(now())
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@map("produits_ecommerce")
+}
+
+model HistoriqueReputation {
+  id                 String   @id @default(cuid())
+  etablissement_id   String
+  date_mesure        DateTime @default(now())
+  note_google        Float?
+  nombre_avis_google Int?
+
+  etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
+
+  @@index([etablissement_id, date_mesure])
+  @@map("historique_reputation")
 }
 
 model PresenceEnLigne {
@@ -132,6 +259,13 @@ model Prospect {
   analyse_commerciale String?
   date_calcul         DateTime    @default(now())
   statut_suivi        StatutSuivi @default(nouveau)
+
+  score_croissance    Int?
+  score_digital       Int?
+  score_technologique Int?
+  score_recrutement   Int?
+  score_intention     Int?
+  segment             Segment?
 
   etablissement Etablissement @relation(fields: [etablissement_id], references: [id], onDelete: Cascade)
 
@@ -169,12 +303,12 @@ model CodeVerification {
 }
 
 model JournalConnexion {
-  id               String                @id @default(cuid())
+  id               String               @id @default(cuid())
   utilisateur_id   String?
   email            String
   adresse_ip       String
-  type_evenement   TypeEvenementJournal  @default(connexion)
-  connecte_a       DateTime              @default(now())
+  type_evenement   TypeEvenementJournal @default(connexion)
+  connecte_a       DateTime             @default(now())
   deconnecte_a     DateTime?
   type_deconnexion TypeDeconnexion?
 

@@ -1,5 +1,5 @@
 import { MapPin, Star, Clock } from "lucide-react";
-import { ScoreBadge } from "@/components/ui/Badge";
+import { ScoreBadge, SegmentBadge } from "@/components/ui/Badge";
 import type { ProspectWithEtablissement } from "@/lib/queries";
 
 function formaterDate(date: Date | string | null): string {
@@ -31,7 +31,10 @@ export function ProspectHoverPreview({
         <span className="font-sans text-sm font-semibold text-foreground">
           {prospect.etablissement.nom}
         </span>
-        <ScoreBadge score={prospect.score} />
+        <div className="flex items-center gap-1.5">
+          {prospect.segment && <SegmentBadge segment={prospect.segment} />}
+          <ScoreBadge score={prospect.score} />
+        </div>
       </div>
 
       <div className="mt-2 flex items-center gap-2 text-xs text-foreground/60">

@@ -3,10 +3,20 @@ import { notFound } from "next/navigation";
 import { Phone, Mail, MapPin, Hash, ArrowLeft, Star, MapPinned } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { PriorityBadge, ScoreBadge } from "@/components/ui/Badge";
+import { PriorityBadge, ScoreBadge, SegmentBadge } from "@/components/ui/Badge";
 import { SocialLinkBadge } from "@/components/SocialLinkBadge";
 import { TelegramSendButton } from "@/components/TelegramSendButton";
+import { ReenrichirButton } from "@/components/ReenrichirButton";
 import { ProspectStatusPanel } from "@/components/ProspectStatusPanel";
+import {
+  CarteIdentification,
+  CarteDirigeants,
+  CarteFinances,
+  CarteTechnologies,
+  CarteSignauxBusiness,
+  CarteWebReputation,
+  CarteCatalogueEcommerce,
+} from "@/components/EnrichissementProspect";
 import { getProspectDetail } from "@/lib/queries";
 import { urlFicheGoogleMaps } from "@/lib/utils";
 
@@ -39,6 +49,7 @@ export default async function ProspectDetailPage({
         subtitle={`${etablissement.secteur} · ${etablissement.ville}`}
         action={
           <div className="flex items-center gap-2">
+            {prospect.segment && <SegmentBadge segment={prospect.segment} />}
             <PriorityBadge priority={prospect.priorite} />
             <ScoreBadge score={prospect.score} />
           </div>
@@ -51,6 +62,13 @@ export default async function ProspectDetailPage({
           statutInitial={prospect.statut_suivi}
           aSiteWeb={prospect.a_site_web}
           analyseCommerciale={prospect.analyse_commerciale}
+          scoresDetailles={{
+            scoreCroissance: prospect.score_croissance,
+            scoreDigital: prospect.score_digital,
+            scoreTechnologique: prospect.score_technologique,
+            scoreRecrutement: prospect.score_recrutement,
+            scoreIntention: prospect.score_intention,
+          }}
         />
 
         <Card className="flex flex-col gap-3">
@@ -124,6 +142,14 @@ export default async function ProspectDetailPage({
           </div>
         </Card>
 
+        <CarteIdentification etablissement={etablissement} />
+        <CarteDirigeants etablissement={etablissement} />
+        <CarteFinances etablissement={etablissement} />
+        <CarteTechnologies etablissement={etablissement} />
+        <CarteSignauxBusiness etablissement={etablissement} />
+        <CarteWebReputation etablissement={etablissement} />
+        <CarteCatalogueEcommerce etablissement={etablissement} />
+
         <Card variant="cyan" className="flex flex-col gap-2 md:col-span-2">
           <span className="font-sans text-xs uppercase tracking-wider text-foreground/50">
             Origine
@@ -140,6 +166,7 @@ export default async function ProspectDetailPage({
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <TelegramSendButton prospectId={prospect.id} />
+        <ReenrichirButton prospectId={prospect.id} />
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import {
   MapPinned,
   EyeOff,
   Eye,
+  Briefcase,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,12 +21,13 @@ import {
   PriorityBadge,
   ProspectStatusBadge,
   ScoreBadge,
+  SegmentBadge,
   EntrepreneurIndividuelBadge,
 } from "@/components/ui/Badge";
 import { ProspectStatusActions } from "@/components/ProspectStatusActions";
 import { ProspectHoverPreview } from "@/components/ProspectHoverPreview";
 import type { ProspectWithEtablissement } from "@/lib/queries";
-import type { Priorite, StatutSuivi } from "@/types";
+import type { Priorite, StatutSuivi, ProspectSegment } from "@/types";
 import { downloadCsv, prospectsToCsv } from "@/lib/csv";
 import { estEntrepreneurIndividuel, estGrosseEntreprise } from "@/lib/pipeline/sirene";
 import { urlFicheGoogleMaps } from "@/lib/utils";
@@ -57,6 +59,7 @@ export function ProspectsExplorer({
     "tous",
   );
   const [metierFilter, setMetierFilter] = useState<string>("tous");
+  const [segmentFilter, setSegmentFilter] = useState<ProspectSegment | "tous">("tous");
   const [entrepreneurIndividuelFilter, setEntrepreneurIndividuelFilter] =
     useState<"tous" | "oui" | "non">("tous");
   const [afficherRefuses, setAfficherRefuses] = useState(false);
@@ -120,6 +123,8 @@ export function ProspectsExplorer({
           statusFilter === "tous" || p.statut_suivi === statusFilter;
         const matchesMetier =
           metierFilter === "tous" || p.etablissement.secteur === metierFilter;
+        const matchesSegment =
+          segmentFilter === "tous" || p.segment === segmentFilter;
         const estEI = estEntrepreneurIndividuel(
           p.etablissement.nature_juridique,
         );
@@ -138,6 +143,7 @@ export function ProspectsExplorer({
           matchesPriority &&
           matchesStatus &&
           matchesMetier &&
+          matchesSegment &&
           matchesEntrepreneurIndividuel &&
           matchesRefusVisibility &&
           matchesTailleEntreprise
@@ -152,6 +158,7 @@ export function ProspectsExplorer({
     priorityFilter,
     statusFilter,
     metierFilter,
+    segmentFilter,
     entrepreneurIndividuelFilter,
     afficherRefuses,
     masquerGrossesEntreprises,
@@ -230,6 +237,20 @@ export function ProspectsExplorer({
                 {m}
               </option>
             ))}
+          </select>
+
+          <select
+            value={segmentFilter}
+            onChange={(e) =>
+              setSegmentFilter(e.target.value as ProspectSegment | "tous")
+            }
+            className="rounded-md border border-neon-green/20 bg-background px-3 py-2 font-sans text-sm text-foreground transition-colors hover:border-neon-green/40 focus:border-neon-green/60 focus:outline-none"
+          >
+            <option value="tous">Tous segments</option>
+            <option value="fort_potentiel">Fort potentiel</option>
+            <option value="a_developper">À développer</option>
+            <option value="stable">Stable</option>
+            <option value="a_risque">À risque</option>
           </select>
 
           <select
@@ -351,6 +372,23 @@ export function ProspectsExplorer({
                   {estEntrepreneurIndividuel(
                     prospect.etablissement.nature_juridique,
                   ) && <EntrepreneurIndividuelBadge />}
+                  {prospect.segment && <SegmentBadge segment={prospect.segment} />}
+                  {(() => {
+                    const nombreOffresEmploi = prospect.etablissement.evenements.filter(
+                      (e) => e.type === "recrutement",
+                    ).length;
+                    return (
+                      nombreOffresEmploi > 0 && (
+                        <span
+                          title="Offres d'emploi actives (approx.)"
+                          className="flex items-center gap-1 rounded-md border border-neon-orange/40 bg-neon-orange/10 px-2 py-0.5 font-mono text-xs text-neon-orange"
+                        >
+                          <Briefcase className="h-3.5 w-3.5" />
+                          {nombreOffresEmploi}
+                        </span>
+                      )
+                    );
+                  })()}
                   <ProspectStatusBadge status={prospect.statut_suivi} />
                   <PriorityBadge priority={prospect.priorite} />
                   <ScoreBadge score={prospect.score} />

@@ -5,10 +5,14 @@ import {
   type PlaceResultat,
 } from "@/lib/pipeline/google-places";
 import { rechercherSiret } from "@/lib/pipeline/sirene";
-import { extraireEmailDuSiteWeb } from "@/lib/pipeline/email-scraper";
 import { extraireCodePostal } from "@/lib/pipeline/matching";
 import { calculerScore } from "@/lib/pipeline/scoring";
 import { notifierSiProspectPrioritaire } from "@/lib/notifications/telegram";
+import {
+  recupererEnrichissement,
+  calculerScoresDepuisEnrichissement,
+} from "@/lib/pipeline/enrichir-etablissement";
+import { PLATEFORMES_SOCIALES } from "@/lib/pipeline/social-links";
 import type { Scan } from "@/lib/generated/prisma/client";
 import type { ProspectWithDetails } from "@/lib/queries";
 
@@ -151,15 +155,39 @@ async function traiterEtablissement(
   }
 
   const aSiteWeb = Boolean(place.siteWeb);
-  const email = place.siteWeb
-    ? await extraireEmailDuSiteWeb(place.siteWeb).catch(() => null)
-    : null;
   const { score, priorite } = calculerScore({
     aSiteWeb,
     noteGoogle: place.note,
     nombreAvisGoogle: place.nombreAvis,
     statutSiret,
   });
+
+  const enrichissement = await recupererEnrichissement(
+    `scan ${scanId}`,
+    place.nom,
+    siret,
+    place.siteWeb,
+    place.latitude,
+    place.longitude,
+  );
+  const {
+    details,
+    evenementsBodacc,
+    marchesPublics,
+    email,
+    technologies,
+    analyseSite,
+    reseauxSociaux,
+    ancienneteDomaine,
+    produitsEcommerce,
+    offresRecrutement,
+  } = enrichissement;
+
+  const scoresDetailles = calculerScoresDepuisEnrichissement(
+    enrichissement,
+    trancheEffectifSalarie,
+    aSiteWeb,
+  );
 
   const etablissement = await prisma.etablissement.create({
     data: {
@@ -179,6 +207,15 @@ async function traiterEtablissement(
       nombre_avis_google: place.nombreAvis,
       latitude: place.latitude,
       longitude: place.longitude,
+      forme_juridique: details?.formeJuridique ?? null,
+      nom_commercial: details?.nomCommercial ?? null,
+      date_creation_entreprise: details?.dateCreationEntreprise ?? null,
+      categorie_entreprise: details?.categorieEntreprise ?? null,
+      tva_intracommunautaire: details?.tvaIntracommunautaire ?? null,
+      nombre_etablissements: details?.nombreEtablissements ?? null,
+      score_performance_web: analyseSite?.scorePerformance ?? null,
+      score_seo_web: analyseSite?.scoreSeo ?? null,
+      score_autorite_domaine: ancienneteDomaine,
       presences: {
         create: [
           {
@@ -186,7 +223,80 @@ async function traiterEtablissement(
             trouve: aSiteWeb,
             url: place.siteWeb,
           },
+          ...PLATEFORMES_SOCIALES.map((plateforme) => ({
+            plateforme,
+            trouve: plateforme in reseauxSociaux,
+            url: reseauxSociaux[plateforme] ?? null,
+          })),
         ],
+      },
+      dirigeants: {
+        create: (details?.dirigeants ?? []).map((d) => ({
+          nom: d.nom,
+          prenoms: d.prenoms,
+          qualite: d.qualite,
+          type_dirigeant: d.typeDirigeant,
+          annee_naissance: d.anneeNaissance,
+          denomination: d.denomination,
+          siren_personne_morale: d.sirenPersonneMorale,
+        })),
+      },
+      donneesFinancieres: {
+        create: (details?.donneesFinancieres ?? []).map((f) => ({
+          annee: f.annee,
+          chiffre_affaires: f.chiffreAffaires,
+          resultat_net: f.resultatNet,
+        })),
+      },
+      technologies: {
+        create: technologies.map((t) => ({
+          categorie: t.categorie,
+          nom: t.nom,
+        })),
+      },
+      evenements: {
+        create: [
+          ...evenementsBodacc.map((e) => ({
+            type: e.type,
+            date_evenement: e.dateEvenement,
+            titre: e.titre,
+            description: e.description,
+            source: "bodacc",
+            url: e.url,
+          })),
+          ...marchesPublics.map((m) => ({
+            type: "marche_public" as const,
+            date_evenement: m.dateEvenement,
+            titre: m.titre,
+            description: m.description,
+            source: "decp",
+            url: null,
+          })),
+          ...offresRecrutement.map((o) => ({
+            type: "recrutement" as const,
+            date_evenement: o.dateCreation,
+            titre: o.titre,
+            description: null,
+            source: "france_travail",
+            url: o.url,
+          })),
+        ],
+      },
+      historiqueReputation: {
+        create: [
+          {
+            note_google: place.note,
+            nombre_avis_google: place.nombreAvis,
+          },
+        ],
+      },
+      produitsEcommerce: {
+        create: produitsEcommerce.map((p) => ({
+          nom: p.nom,
+          prix: p.prix,
+          devise: p.devise,
+          url: p.url,
+        })),
       },
       prospect: {
         create: {
@@ -199,6 +309,12 @@ async function traiterEtablissement(
             nombreAvis: place.nombreAvis,
             statutSiret,
           }),
+          score_croissance: scoresDetailles.scoreCroissance,
+          score_digital: scoresDetailles.scoreDigital,
+          score_technologique: scoresDetailles.scoreTechnologique,
+          score_recrutement: scoresDetailles.scoreRecrutement,
+          score_intention: scoresDetailles.scoreIntention,
+          segment: scoresDetailles.segment,
         },
       },
     },
@@ -206,6 +322,12 @@ async function traiterEtablissement(
       presences: true,
       prospect: true,
       scan: true,
+      dirigeants: true,
+      donneesFinancieres: { orderBy: { annee: "desc" } },
+      technologies: true,
+      evenements: { orderBy: { date_evenement: "desc" } },
+      historiqueReputation: { orderBy: { date_mesure: "asc" } },
+      produitsEcommerce: true,
     },
   });
 

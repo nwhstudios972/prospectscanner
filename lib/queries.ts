@@ -2,14 +2,24 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import type { DashboardStats } from "@/types";
 
+const INCLUS_ENRICHISSEMENT = {
+  presences: true,
+  dirigeants: true,
+  donneesFinancieres: { orderBy: { annee: "desc" } },
+  technologies: true,
+  evenements: { orderBy: { date_evenement: "desc" } },
+  historiqueReputation: { orderBy: { date_mesure: "asc" } },
+  produitsEcommerce: true,
+} as const;
+
 export type ProspectWithEtablissement = Prisma.ProspectGetPayload<{
-  include: { etablissement: { include: { presences: true } } };
+  include: { etablissement: { include: typeof INCLUS_ENRICHISSEMENT } };
 }>;
 
 export type ProspectWithDetails = Prisma.ProspectGetPayload<{
   include: {
     etablissement: {
-      include: { presences: true; scan: true };
+      include: typeof INCLUS_ENRICHISSEMENT & { scan: true };
     };
   };
 }>;
@@ -54,7 +64,7 @@ export async function getVillesSuggerees(): Promise<string[]> {
 
 export async function getAllProspects(): Promise<ProspectWithEtablissement[]> {
   return prisma.prospect.findMany({
-    include: { etablissement: { include: { presences: true } } },
+    include: { etablissement: { include: INCLUS_ENRICHISSEMENT } },
     orderBy: { score: "desc" },
   });
 }
@@ -66,7 +76,7 @@ export async function getProspectDetail(
     where: { id },
     include: {
       etablissement: {
-        include: { presences: true, scan: true },
+        include: { ...INCLUS_ENRICHISSEMENT, scan: true },
       },
     },
   });
